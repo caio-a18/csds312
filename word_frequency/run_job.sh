@@ -11,7 +11,7 @@
 #   HADOOP_HOME  — path to Hadoop installation (default: /usr/local/hadoop)
 #   NUM_REDUCERS — number of reducer tasks       (default: 4)
 #
-# Author: Caio Albuquerque (Group 9, CSDS 312)
+# Author: Caio Albuquerque
 
 set -euo pipefail
 

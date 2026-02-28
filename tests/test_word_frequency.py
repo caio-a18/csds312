@@ -11,7 +11,7 @@ Covers:
 Run:
     pytest tests/test_word_frequency.py -v
 
-Author: Caio Albuquerque (Group 9, CSDS 312)
+Author: Caio Albuquerque
 """
 
 import subprocess

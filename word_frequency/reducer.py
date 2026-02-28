@@ -12,7 +12,7 @@ Usage (local simulation):
 Usage (Hadoop Streaming):
     See mapper.py header for full invocation.
 
-Author: Caio Albuquerque (Group 9, CSDS 312)
+Author: Caio Albuquerque
 """
 
 import sys

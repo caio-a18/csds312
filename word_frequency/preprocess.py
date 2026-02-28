@@ -5,7 +5,7 @@ Used by:
   - mapper.py  (word frequency)
   - Other group members' MapReduce components (sentiment, syntactic complexity)
 
-Author: Caio Albuquerque (Group 9, CSDS 312)
+Author: Caio Albuquerque
 """
 
 import re

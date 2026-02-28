@@ -16,7 +16,7 @@ Usage (Hadoop Streaming):
         -input   hdfs:///books/input \\
         -output  hdfs:///books/output/word_freq
 
-Author: Caio Albuquerque (Group 9, CSDS 312)
+Author: Caio Albuquerque
 """
 
 import sys

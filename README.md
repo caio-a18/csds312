@@ -32,7 +32,7 @@ Books (HDFS)
 | 2 | Sentiment Analysis MapReduce | `component2/` | Dilan Fajardo | Done |
 | 3 | Syntactic Complexity MapReduce | — | Harish Ragopalan | In progress |
 | 4 | Intermediate Data Normalization | `normalization/` | Zeynep Bastas | Done |
-| 5 | Results Aggregation | — | Mitchell Fein | In progress |
+| 5 | Results Aggregation | — | Mitchell Fein | Done |
 | — | Data Acquisition | `data_acquisition/` | Caio Albuquerque | Done |
 | — | Load & Stress Testing | `load_testing/` | Caio Albuquerque | Done |
 

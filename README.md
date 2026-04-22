@@ -28,7 +28,7 @@ Books (HDFS)
 
 | # | Name | Directory | Owner | Status |
 |---|------|-----------|-------|--------|
-| 1 | Word Frequency MapReduce | `test_pipeline/` | Caio Albuquerque | Done |
+| 1 | Word Frequency MapReduce | `test_pipeline/` | Adam Hamdan and Caio Albuquerque | Done |
 | 2 | Sentiment Analysis MapReduce | `component2/` | Dilan Fajardo | Done |
 | 3 | Syntactic Complexity MapReduce | — | Harish Ragopalan | In progress |
 | 4 | Intermediate Data Normalization | `normalization/` | Zeynep Bastas | Done |

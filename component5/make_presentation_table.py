@@ -4,6 +4,7 @@ Create a tiny presentation table from Component 5 aggregation JSON.
 
 Usage:
   python3 component5/make_presentation_table.py <aggregation_summary.json>
+  python3 component5/make_presentation_table.py <aggregation_summary.json> --format terminal
   python3 component5/make_presentation_table.py <aggregation_summary.json> --format csv
   python3 component5/make_presentation_table.py <aggregation_summary.json> --top 6
 """
@@ -28,9 +29,9 @@ def parse_args():
     parser.add_argument("summary_json", help="Path to aggregation_summary.json")
     parser.add_argument(
         "--format",
-        choices=["markdown", "csv"],
-        default="markdown",
-        help="Output format (default: markdown)",
+        choices=["terminal", "markdown", "csv"],
+        default="terminal",
+        help="Output format (default: terminal)",
     )
     parser.add_argument(
         "--top",
@@ -101,6 +102,52 @@ def print_markdown(rows):
         )
 
 
+def print_terminal(rows, summary):
+    headers = ["Metric", "Bestseller Mean", "Standard Mean", "Delta (B-S)", "Direction"]
+    body = []
+    for r in rows:
+        body.append(
+            [
+                r["Metric"],
+                r["BestsellerMean"],
+                r["StandardMean"],
+                r["Delta(B-S)"],
+                r["Direction"],
+            ]
+        )
+
+    widths = []
+    for idx, h in enumerate(headers):
+        max_body = max([len(str(row[idx])) for row in body] + [0])
+        widths.append(max(len(h), max_body))
+
+    def hline():
+        return "+" + "+".join("-" * (w + 2) for w in widths) + "+"
+
+    def fmt_row(cells):
+        rendered = []
+        for i, c in enumerate(cells):
+            text = str(c)
+            if i in (1, 2, 3):
+                rendered.append(" " + text.rjust(widths[i]) + " ")
+            else:
+                rendered.append(" " + text.ljust(widths[i]) + " ")
+        return "|" + "|".join(rendered) + "|"
+
+    by_cohort = summary.get("by_cohort", {})
+    b_n = by_cohort.get("bestseller", {}).get("n_books", 0)
+    s_n = by_cohort.get("standard", {}).get("n_books", 0)
+    total = summary.get("books_aggregated", 0)
+    dropped = summary.get("dropped_lines", 0)
+    print("Books aggregated: {0} (bestseller={1}, standard={2}, dropped={3})".format(total, b_n, s_n, dropped))
+    print(hline())
+    print(fmt_row(headers))
+    print(hline())
+    for row in body:
+        print(fmt_row(row))
+    print(hline())
+
+
 def print_csv(rows):
     print("Metric,BestsellerMean,StandardMean,Delta(B-S),Direction")
     for r in rows:
@@ -127,8 +174,10 @@ def main():
 
     if args.format == "csv":
         print_csv(rows)
-    else:
+    elif args.format == "markdown":
         print_markdown(rows)
+    else:
+        print_terminal(rows, summary)
 
 
 if __name__ == "__main__":

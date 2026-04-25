@@ -10,8 +10,6 @@ Outputs are written to a local directory tree so the workflow can run on Markov
 even when Hadoop/HDFS commands are unavailable.
 """
 
-from __future__ import annotations
-
 import argparse
 import csv
 import io
@@ -20,6 +18,7 @@ import subprocess
 import sys
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
+from typing import Dict, List, Optional, Tuple
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -33,12 +32,13 @@ AGG_MAPPER = REPO_ROOT / "component5" / "aggregator_mapper.py"
 AGG_REDUCER = REPO_ROOT / "component5" / "aggregator_reducer.py"
 
 
-def run_component(book_path: Path, mapper: Path, reducer: Path, cwd: Path | None = None) -> str:
+def run_component(book_path, mapper, reducer, cwd=None):
     with book_path.open("rb") as fh:
         mapped = subprocess.run(
             [sys.executable, str(mapper)],
             stdin=fh,
-            capture_output=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
             cwd=str(cwd) if cwd else None,
             check=True,
         ).stdout.decode("utf-8", errors="replace")
@@ -48,15 +48,16 @@ def run_component(book_path: Path, mapper: Path, reducer: Path, cwd: Path | None
     reduced = subprocess.run(
         [sys.executable, str(reducer)],
         input=sorted_lines,
-        text=True,
-        capture_output=True,
+        universal_newlines=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
         cwd=str(cwd) if cwd else None,
         check=True,
     ).stdout
     return reduced
 
 
-def map_for_normalization(component: str, book_id: str | None, text: str) -> str:
+def map_for_normalization(component, book_id, text):
     env = os.environ.copy()
     env["NORM_COMPONENT"] = component
     if book_id is not None:
@@ -66,14 +67,15 @@ def map_for_normalization(component: str, book_id: str | None, text: str) -> str
     return subprocess.run(
         [sys.executable, str(NORM_MAPPER)],
         input=text,
-        text=True,
-        capture_output=True,
+        universal_newlines=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
         env=env,
         check=True,
     ).stdout
 
 
-def parse_args() -> argparse.Namespace:
+def parse_args():
     parser = argparse.ArgumentParser(description="Run CSDS 312 pipeline without Hadoop/HDFS.")
     parser.add_argument(
         "--metadata",
@@ -105,7 +107,7 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def main() -> None:
+def main():
     args = parse_args()
     metadata_path = Path(args.metadata).resolve()
     books_dir = Path(args.books_dir).resolve()
@@ -123,7 +125,7 @@ def main() -> None:
     if not books_dir.exists():
         raise FileNotFoundError(f"Books dir not found: {books_dir}")
 
-    rows: list[dict[str, str]] = []
+    rows = []  # type: List[Dict[str, str]]
     with metadata_path.open("r", encoding="utf-8", newline="") as f:
         for row in csv.DictReader(f):
             rows.append(row)
@@ -134,7 +136,7 @@ def main() -> None:
 
     print(f"Processing {len(rows)} books (jobs={args.jobs})")
 
-    def process_row(row: dict[str, str]) -> tuple[str, bool, str]:
+    def process_row(row):
         book_id = row["book_id"]
         filename = row.get("filename") or f"{book_id}.txt"
         book_path = books_dir / filename
@@ -150,7 +152,7 @@ def main() -> None:
         (out_sent / f"{book_id}.tsv").write_text(sent, encoding="utf-8")
         return book_id, True, "ok"
 
-    failures: list[tuple[str, str]] = []
+    failures = []  # type: List[Tuple[str, str]]
     with ThreadPoolExecutor(max_workers=max(1, args.jobs)) as ex:
         futs = [ex.submit(process_row, row) for row in rows]
         for fut in as_completed(futs):
@@ -165,7 +167,7 @@ def main() -> None:
         print(f"\nWARNING: {len(failures)} books failed in Component 1/2.")
 
     # Component 4 mapping stage (local simulation with env overrides)
-    mapped_chunks: list[str] = []
+    mapped_chunks = []  # type: List[str]
     for row in rows:
         book_id = row["book_id"]
         wf_path = out_word / f"{book_id}.tsv"
@@ -189,8 +191,9 @@ def main() -> None:
     normalized = subprocess.run(
         [sys.executable, str(NORM_REDUCER)],
         input=norm_sorted,
-        text=True,
-        capture_output=True,
+        universal_newlines=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
         check=True,
     ).stdout
     normalized_path = out_norm / "part-00000"
@@ -201,8 +204,9 @@ def main() -> None:
     agg_mapped = subprocess.run(
         [sys.executable, str(AGG_MAPPER)],
         input=normalized,
-        text=True,
-        capture_output=True,
+        universal_newlines=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
         check=True,
     ).stdout
     agg_sorted = "\n".join(sorted([ln for ln in agg_mapped.splitlines() if ln.strip()]))
@@ -211,8 +215,9 @@ def main() -> None:
     aggregated = subprocess.run(
         [sys.executable, str(AGG_REDUCER)],
         input=agg_sorted,
-        text=True,
-        capture_output=True,
+        universal_newlines=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
         check=True,
     ).stdout
     agg_path = out_agg / "aggregation_summary.json"

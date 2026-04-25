@@ -24,6 +24,7 @@ Author: Zeynep Bastas
 import sys
 import os
 import re
+import csv
 
 BOOK_ID_RE = re.compile(r"(\d+)")
 
@@ -69,14 +70,15 @@ def parse_kv_line(line: str):
 
 
 def parse_metadata_line(line: str):
-    parts = line.split(",", 4)
-    if len(parts) < 4:
+    # Use CSV parsing so quoted commas in title/author are handled correctly.
+    row = next(csv.reader([line]), None)
+    if not row or len(row) < 4:
         return None
     return {
-        "book_id":      parts[0].strip(),
-        "title":        parts[1].strip(),
-        "author":       parts[2].strip(),
-        "is_bestseller": parts[3].strip(),
+        "book_id": row[0].strip(),
+        "title": row[1].strip(),
+        "author": row[2].strip(),
+        "is_bestseller": row[3].strip(),
     }
 
 

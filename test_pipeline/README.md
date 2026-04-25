@@ -116,8 +116,7 @@ and stops at:
 **Download fails:** Check your internet connection. The script retries once.
 Run manually: `python3 download_test_book.py`
 
-**`hdfs` command not found:** You are not on the cluster, or Hadoop is not in
-your PATH. Try: `export PATH=$PATH:/usr/local/hadoop/bin`
+**`hdfs` command not found:** On **Markov**, Hadoop is usually provided via **Environment Modules**, not a fixed path. Run `module avail hadoop` or `module spider hadoop`, then `module load hadoop` (or the full versioned name shown). Repeat after `srun` on a compute node, or add the `module load` line to `~/.bashrc` / your job script. On other clusters, you might use `export PATH=$PATH:/usr/local/hadoop/bin` if your admin documented that layout.
 
 **Streaming JAR not found:** Edit `submit_wordfreq_cluster.sh` and set
 `STREAMING_JAR` to the correct path. Ask your TA for the cluster-specific path.

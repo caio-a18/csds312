@@ -29,6 +29,29 @@ Or with pytest:
 pytest tests/test_component5.py -v
 ```
 
+## No-Hadoop fallback (Markov-safe)
+
+If your Markov environment does not provide `hdfs`/`hadoop`, run the same logic
+locally on the cluster filesystem using the fallback orchestrator:
+
+```bash
+python3 no_hadoop/run_pipeline_no_hadoop.py \
+  --metadata data_acquisition/books_metadata.csv \
+  --books-dir data_acquisition/books \
+  --output-dir /mnt/vstor/courses/csds312/<USER>/pipeline_no_hadoop_output \
+  --jobs 8
+```
+
+This runs:
+- Component 1 mapper/reducer per book
+- Component 2 mapper/reducer per book
+- Component 4 normalization mapper/reducer
+- Component 5 aggregation mapper/reducer
+
+Key outputs:
+- `.../pipeline_no_hadoop_output/normalized/part-00000`
+- `.../pipeline_no_hadoop_output/aggregated/aggregation_summary.json`
+
 ---
 
 ## Markov / CSDS 312 cluster — full runbook
@@ -53,7 +76,28 @@ python3 download_books.py
 cd ..
 ```
 
-### 3) Upload books + metadata to HDFS
+### 3) Load Hadoop into your shell (required on Markov)
+
+On **markov.case.edu**, `hdfs` and `hadoop` are usually **not** on your default `PATH` on the login node or on compute nodes. You must load the site **Environment Modules** package first (same idea as `module load matlab` in the HPC quick start).
+
+```bash
+module avail hadoop 2>&1 | head -50
+# If you see a versioned name, load it exactly, for example:
+#   module load hadoop/3.3.6
+module load hadoop
+
+which hdfs
+which hadoop
+hdfs version
+```
+
+If `module load hadoop` fails, run `module spider hadoop` and use the full module name it prints. If nothing matches, ask your **CSDS 312 TA** or **hpc-support@case.edu** for the current Hadoop module name on Markov.
+
+**Not Python:** `No module named hadoop` from Python is expected. Hadoop is a **Java CLI** (`hdfs`, `hadoop`), not a Python package. After `module load`, use the shell commands below, not `import hadoop`.
+
+**Slurm / compute nodes:** Put `module load hadoop` (or the exact module line) at the top of any batch script, or add it to `~/.bashrc` on the cluster so every `srun` session inherits it.
+
+### 4) Upload books + metadata to HDFS
 
 ```bash
 hdfs dfs -mkdir -p /user/<USER>/gutenberg
@@ -63,7 +107,7 @@ hdfs dfs -put -f data_acquisition/books_metadata.csv /user/<USER>/metadata/books
 hdfs dfs -ls /user/<USER>/gutenberg
 ```
 
-### 4) Run Component 1 (word frequency)
+### 5) Run Component 1 (word frequency)
 
 The stock `submit_wordfreq_cluster.sh` uses `/user/<USER>/gutenberg` — pass your username:
 
@@ -73,7 +117,7 @@ bash test_pipeline/submit_wordfreq_cluster.sh <USER>
 
 Note the printed **`HDFS_OUTPUT`** path (e.g. `/user/<USER>/wordfreq_output_YYYYMMDD_HHMMSS`).
 
-### 5) Run Component 2 (sentiment)
+### 6) Run Component 2 (sentiment)
 
 ```bash
 bash component2/submit_sentiment_cluster.sh <USER>
@@ -81,37 +125,33 @@ bash component2/submit_sentiment_cluster.sh <USER>
 
 Note the **`HDFS_OUTPUT`** path for sentiment.
 
-### 6) Syntactic output directory (Component 3)
-
-Until Component 3 is deployed, use an **empty** placeholder directory so normalization still runs:
+### 7) Syntactic output directory (Component 3)
 
 ```bash
-hdfs dfs -mkdir -p /user/<USER>/books/output/syntactic_empty
+hdfs dfs -mkdir -p /user/<USER>/books/output/syntactic
 ```
 
-If your group later writes real syntactic job output, point `SYNT_DIR` there instead.
+### 8) Run Component 4 (normalization)
 
-### 7) Run Component 4 (normalization)
-
-Substitute your actual wordfreq and sentiment output paths from steps 4–5:
+Substitute your actual wordfreq and sentiment output paths from steps 5–6:
 
 ```bash
 WF=/user/<USER>/wordfreq_output_YYYYMMDD_HHMMSS
 SENT=/user/<USER>/sentiment_output_YYYYMMDD_HHMMSS
-SYN=/user/<USER>/books/output/syntactic_empty
+SYN=/user/<USER>/books/output/syntactic
 META=hdfs:///user/<USER>/metadata/books_metadata.csv
 OUTN=/user/<USER>/books/output/normalized
 
 bash normalization/run_job.sh "$WF" "$SENT" "$SYN" "$META" "$OUTN"
 ```
 
-### 8) Run Component 5 (aggregation)
+### 9) Run Component 5 (aggregation)
 
 ```bash
 bash component5/submit_aggregation_cluster.sh "$OUTN" /user/<USER>/books/output/aggregated
 ```
 
-### 9) Inspect and download results
+### 10) Inspect and download results
 
 ```bash
 hdfs dfs -cat /user/<USER>/books/output/aggregated/part-*
@@ -134,5 +174,7 @@ quotagrp csds312
 
 ## Troubleshooting
 
+- **`hdfs: command not found` on Markov:** Run **`module load hadoop`** (or the versioned name from `module spider hadoop`) in **this** shell session before any `hdfs` / `hadoop jar` commands. Compute nodes from `srun` start a fresh environment unless you load modules in the job or in `~/.bashrc`.
+- **`No module named hadoop` in Python:** Normal. Use the **`hdfs`** and **`hadoop`** shell tools after loading the Hadoop module, not `import hadoop`.
 - **Empty aggregation / zero books:** Normalization lines must include `metadata.is_bestseller` exactly `"0"` or `"1"` (strings).
 - **Streaming JAR not found:** Set path manually in `submit_aggregation_cluster.sh` after locating `hadoop-streaming*.jar` on the cluster (`find /usr -name 'hadoop-streaming*.jar'`).

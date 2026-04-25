@@ -1,0 +1,61 @@
+{
+  "component": "results_aggregation",
+  "version": 1,
+  "input_lines": 1,
+  "books_aggregated": 1,
+  "dropped_lines": 0,
+  "dropped_by_reason": {},
+  "by_cohort": {
+    "bestseller": {
+      "cohort": "bestseller",
+      "n_books": 1,
+      "means": {
+        "polarity_score": 0.6072,
+        "positive_count": 4804.0,
+        "negative_count": 2862.0,
+        "total_scored_words": 7666.0,
+        "total_word_count": 64241.0,
+        "unique_word_count": 6641.0,
+        "type_token_ratio": 0.10337634843791348
+      },
+      "syntactic_means": {},
+      "sums": {
+        "negative_count": 2862.0,
+        "polarity_score": 0.6072,
+        "positive_count": 4804.0,
+        "total_scored_words": 7666.0,
+        "total_word_count": 64241.0,
+        "type_token_ratio": 0.10337634843791348,
+        "unique_word_count": 6641.0
+      }
+    },
+    "standard": {
+      "cohort": "standard",
+      "n_books": 0,
+      "means": {},
+      "syntactic_means": {},
+      "sums": {}
+    }
+  },
+  "comparison": {
+    "mean_deltas_bestseller_minus_standard": {
+      "negative_count": null,
+      "polarity_score": null,
+      "positive_count": null,
+      "total_scored_words": null,
+      "total_word_count": null,
+      "type_token_ratio": null,
+      "unique_word_count": null
+    },
+    "direction": {
+      "negative_count": null,
+      "polarity_score": null,
+      "positive_count": null,
+      "total_scored_words": null,
+      "total_word_count": null,
+      "type_token_ratio": null,
+      "unique_word_count": null
+    },
+    "syntactic_mean_deltas": {}
+  }
+}

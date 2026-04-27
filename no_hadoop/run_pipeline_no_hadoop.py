@@ -26,6 +26,8 @@ WORD_MAPPER = REPO_ROOT / "test_pipeline" / "wordfreq_mapper.py"
 WORD_REDUCER = REPO_ROOT / "test_pipeline" / "wordfreq_reducer.py"
 SENT_MAPPER = REPO_ROOT / "component2" / "sentiment_mapper.py"
 SENT_REDUCER = REPO_ROOT / "component2" / "sentiment_reducer.py"
+SYNT_MAPPER = REPO_ROOT / "mapper.py"
+SYNT_REDUCER = REPO_ROOT / "reducer.py"
 NORM_MAPPER = REPO_ROOT / "normalization" / "mapper.py"
 NORM_REDUCER = REPO_ROOT / "normalization" / "reducer.py"
 AGG_MAPPER = REPO_ROOT / "component5" / "aggregator_mapper.py"
@@ -114,10 +116,11 @@ def main():
     out_root = Path(args.output_dir).resolve()
     out_word = out_root / "wordfreq"
     out_sent = out_root / "sentiment"
+    out_synt = out_root / "syntactic"
     out_norm = out_root / "normalized"
     out_agg = out_root / "aggregated"
 
-    for d in (out_word, out_sent, out_norm, out_agg):
+    for d in (out_word, out_sent, out_synt, out_norm, out_agg):
         d.mkdir(parents=True, exist_ok=True)
 
     if not metadata_path.exists():
@@ -145,11 +148,30 @@ def main():
         try:
             wf = run_component(book_path, WORD_MAPPER, WORD_REDUCER)
             sent = run_component(book_path, SENT_MAPPER, SENT_REDUCER, cwd=REPO_ROOT / "component2")
+            # Component 3: set mapreduce_map_input_file so Harish's mapper
+            # can derive the book_id from the filename.
+            synt_env = os.environ.copy()
+            synt_env["mapreduce_map_input_file"] = str(book_path)
+            with book_path.open("rb") as fh:
+                synt_mapped = subprocess.run(
+                    [sys.executable, str(SYNT_MAPPER)],
+                    stdin=fh, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                    env=synt_env, check=True,
+                ).stdout.decode("utf-8", errors="replace")
+            synt_sorted = "\n".join(sorted(synt_mapped.splitlines()))
+            if synt_sorted:
+                synt_sorted += "\n"
+            synt = subprocess.run(
+                [sys.executable, str(SYNT_REDUCER)],
+                input=synt_sorted, universal_newlines=True,
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True,
+            ).stdout
         except subprocess.CalledProcessError as e:
             return book_id, False, f"subprocess failed: {e}"
 
         (out_word / f"{book_id}.tsv").write_text(wf, encoding="utf-8")
         (out_sent / f"{book_id}.tsv").write_text(sent, encoding="utf-8")
+        (out_synt / f"{book_id}.tsv").write_text(synt, encoding="utf-8")
         return book_id, True, "ok"
 
     failures = []  # type: List[Tuple[str, str]]
@@ -176,6 +198,9 @@ def main():
             mapped_chunks.append(map_for_normalization("wordfreq", book_id, wf_path.read_text(encoding="utf-8")))
         if sent_path.exists():
             mapped_chunks.append(map_for_normalization("sentiment", book_id, sent_path.read_text(encoding="utf-8")))
+        synt_path = out_synt / f"{book_id}.tsv"
+        if synt_path.exists():
+            mapped_chunks.append(map_for_normalization("syntactic", book_id, synt_path.read_text(encoding="utf-8")))
 
     # Feed metadata only for the rows selected in this run (respects --limit and missing-book filtering).
     meta_buf = io.StringIO()

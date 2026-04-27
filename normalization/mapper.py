@@ -112,14 +112,20 @@ def main():
                     pass
 
         elif component == "syntactic":
-            kv = parse_kv_line(line)
-            if kv:
-                metric, value_str = kv
-                try:
-                    float(value_str)
-                    print(f"{book_id}\tsyntactic\t{metric}\t{value_str}")
-                except ValueError:
-                    pass
+            # Harish's reducer emits book_id\tmetric\tvalue (3 fields);
+            # also accept plain metric\tvalue (2 fields) for flexibility.
+            parts = line.split("\t")
+            if len(parts) == 3:
+                _, metric, value_str = parts
+            elif len(parts) == 2:
+                metric, value_str = parts
+            else:
+                continue
+            try:
+                float(value_str)
+                print(f"{book_id}\tsyntactic\t{metric}\t{value_str}")
+            except ValueError:
+                pass
 
         elif component == "metadata":
             if first_line and "book_id" in line.lower():

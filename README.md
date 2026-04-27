@@ -31,7 +31,7 @@ Books (HDFS)
 | 1 | Word Frequency MapReduce | `test_pipeline/` | Adam Hamdan and Caio Albuquerque | Done |
 | 2 | Sentiment Analysis MapReduce | `component2/` | Dilan Fajardo | Done |
 | 3 | Syntactic Complexity MapReduce | — | Harish Ragopalan | In progress |
-| 4 | Intermediate Data Normalization | `normalization/` | Zeynep Bastas | Done |
+| 4 | Intermediate Data Normalization | `normalization/` | Zeynep Bastas | Done — mapper, reducer, cluster script, 62 pytest tests; wired Components 1–3 into unified per-book JSON schema for Component 5 |
 | 5 | Results Aggregation | `component5/` | Mitchell Fein | Done |
 | — | Data Acquisition | `data_acquisition/` | Caio Albuquerque | Done |
 | — | Load & Stress Testing | `load_testing/` | Caio Albuquerque | Done |
